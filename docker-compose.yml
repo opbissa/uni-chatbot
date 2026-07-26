@@ -1,0 +1,70 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: unichatbot
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./api/src/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/unichatbot
+      REDIS_URL: redis://redis:6379
+      OLLAMA_URL: http://ollama:11434
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
+      - ollama
+
+  workers:
+    build:
+      context: .
+      dockerfile: workers/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/unichatbot
+      REDIS_URL: redis://redis:6379
+      OLLAMA_URL: http://ollama:11434
+    depends_on:
+      - postgres
+      - redis
+      - ollama
+
+  # extractor is invoked via child_process from workers/api for the MVP,
+  # not a container. Promote to an HTTP service here once tenant #2 lands
+  # (see docs/ROADMAP.md "Defer until tenant #2").
+
+volumes:
+  postgres_data:
+  redis_data:
+  ollama_data:

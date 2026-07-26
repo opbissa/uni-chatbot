@@ -1,0 +1,21 @@
+{
+  "name": "uni-chatbot",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "api",
+    "admin",
+    "widget",
+    "workers"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w api",
+    "dev:workers": "npm run dev -w workers",
+    "dev:admin": "npm run dev -w admin",
+    "build": "npm run build -w api && npm run build -w workers && npm run build -w widget",
+    "typecheck": "npm run typecheck -w api && npm run typecheck -w workers"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
