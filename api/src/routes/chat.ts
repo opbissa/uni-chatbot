@@ -26,16 +26,36 @@ export async function chatRoutes(app: FastifyInstance) {
       .map((c) => `[${c.pageTitle ?? c.sourceUrl}]\n${c.text}`)
       .join("\n\n");
 
+    // @fastify/cors only injects headers on the normal reply.send() pipeline;
+    // this route writes straight to reply.raw for SSE, so the header must be
+    // set here too. Safe to reflect verbatim: isOriginAllowed already checked
+    // this exact origin against the tenant's registered domains above.
+    reply.raw.setHeader("Access-Control-Allow-Origin", request.headers.origin!);
     reply.raw.setHeader("Content-Type", "text/event-stream");
     reply.raw.setHeader("Cache-Control", "no-cache");
     reply.raw.setHeader("Connection", "keep-alive");
 
-    for await (const token of generate(tenant.llmProvider, { systemPrompt: SYSTEM_PROMPT, question, context })) {
-      reply.raw.write(`data: ${JSON.stringify({ token })}\n\n`);
+    const controller = new AbortController();
+    reply.raw.on("close", () => controller.abort());
+
+    try {
+      for await (const token of generate(tenant.llmProvider, {
+        systemPrompt: SYSTEM_PROMPT,
+        question,
+        context,
+        signal: controller.signal,
+      })) {
+        if (reply.raw.destroyed) break;
+        reply.raw.write(`data: ${JSON.stringify({ token })}\n\n`);
+      }
+    } catch (err) {
+      if (!controller.signal.aborted) throw err;
     }
-    reply.raw.write(
-      `data: ${JSON.stringify({ done: true, sources: chunks.map((c) => c.sourceUrl) })}\n\n`
-    );
-    reply.raw.end();
+    if (!reply.raw.destroyed) {
+      reply.raw.write(
+        `data: ${JSON.stringify({ done: true, sources: chunks.map((c) => c.sourceUrl) })}\n\n`
+      );
+      reply.raw.end();
+    }
   });
 }

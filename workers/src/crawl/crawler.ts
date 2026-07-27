@@ -8,6 +8,7 @@ export interface CrawlConfig {
   baseUrl: string;
   allowedPaths: string[];
   selectors: Record<string, string>;
+  maxRequestsPerCrawl?: number;
 }
 
 /** Onboarding a university = insert a crawl_configs row, not writing a new spider. */
@@ -15,6 +16,7 @@ export async function crawlTenant(config: CrawlConfig): Promise<void> {
   const contentSelector = config.selectors.content ?? "main, article, body";
 
   const crawler = new CheerioCrawler({
+    maxRequestsPerCrawl: config.maxRequestsPerCrawl ?? 50,
     async requestHandler({ request, $, enqueueLinks }) {
       const pageTitle = $("title").first().text().trim() || null;
       const text = $(contentSelector).first().text().replace(/\s+/g, " ").trim();

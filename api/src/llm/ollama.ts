@@ -1,8 +1,13 @@
+import { Agent } from "undici";
 import type { GenerateParams } from "./index.js";
 
 const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
 const EMBED_MODEL = process.env.OLLAMA_EMBED_MODEL ?? "bge-m3";
 const GENERATE_MODEL = process.env.OLLAMA_GENERATE_MODEL ?? "qwen2.5:7b";
+
+// Self-hosted Ollama on CPU can take well over undici's 300s default before
+// the first token of a large-context prompt is ready.
+const generateDispatcher = new Agent({ headersTimeout: 0, bodyTimeout: 0 });
 
 export async function embed(text: string): Promise<number[]> {
   const res = await fetch(`${OLLAMA_URL}/api/embed`, {
@@ -24,6 +29,9 @@ export async function* generateWithOllama(params: GenerateParams): AsyncIterable
       prompt: `${params.systemPrompt}\n\nContext:\n${params.context}\n\nQuestion: ${params.question}`,
       stream: true,
     }),
+    signal: params.signal,
+    // @ts-expect-error dispatcher is an undici-specific fetch option
+    dispatcher: generateDispatcher,
   });
   if (!res.ok || !res.body) throw new Error(`Ollama generate failed: ${res.status}`);
 

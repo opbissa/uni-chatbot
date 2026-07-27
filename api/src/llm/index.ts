@@ -5,6 +5,7 @@ export interface GenerateParams {
   systemPrompt: string;
   question: string;
   context: string;
+  signal?: AbortSignal;
 }
 
 export type LlmProvider = "ollama" | "claude";
