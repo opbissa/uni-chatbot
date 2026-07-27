@@ -8,6 +8,7 @@ keep the golden-file tests in tests/golden/ passing.
 """
 
 import json
+import subprocess
 import sys
 
 import pdfplumber
@@ -21,6 +22,19 @@ def extract(pdf_path: str) -> dict:
     full_text_parts = []
 
     with pdfplumber.open(pdf_path) as pdf:
+        if len(pdf.pages) == 0:
+            # Some producers (seen: "Microsoft: Print To PDF") emit a catalog
+            # pdfminer can't walk at all, so pdfplumber sees zero pages with
+            # no exception raised. poppler tolerates the same file fine, so
+            # fall back to it rather than silently returning empty JSON.
+            text = subprocess.run(
+                ["pdftotext", "-layout", pdf_path, "-"],
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout
+            return {"pages": [{"n": 1, "text": text}], "tables": [], "text": text}
+
         for i, page in enumerate(pdf.pages, start=1):
             text = page.extract_text() or ""
 
