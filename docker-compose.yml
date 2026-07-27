@@ -24,13 +24,11 @@ services:
     volumes:
       - redis_data:/data
 
-  ollama:
-    image: ollama/ollama:latest
-    restart: unless-stopped
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
+  # ollama runs natively on the host (Metal acceleration on Mac dev machines
+  # is ~5-8x faster than CPU-only in this container per local benchmark).
+  # Containers reach it via host.docker.internal. Revisit for the Linux VPS
+  # deployment target, where this Mac-only rationale doesn't apply — see
+  # docs/DECISIONS.md.
 
   api:
     build:
@@ -41,13 +39,12 @@ services:
     environment:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/unichatbot
       REDIS_URL: redis://redis:6379
-      OLLAMA_URL: http://ollama:11434
+      OLLAMA_URL: http://host.docker.internal:11434
     ports:
       - "3000:3000"
     depends_on:
       - postgres
       - redis
-      - ollama
 
   workers:
     build:
@@ -58,11 +55,10 @@ services:
     environment:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/unichatbot
       REDIS_URL: redis://redis:6379
-      OLLAMA_URL: http://ollama:11434
+      OLLAMA_URL: http://host.docker.internal:11434
     depends_on:
       - postgres
       - redis
-      - ollama
 
   # extractor is invoked via child_process from workers/api for the MVP,
   # not a container. Promote to an HTTP service here once tenant #2 lands
@@ -71,4 +67,3 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  ollama_data:
