@@ -17,5 +17,10 @@
   },
   "engines": {
     "node": ">=22"
+  },
+  "overrides": {
+    "linkedom": {
+      "css-select": "5.2.2"
+    }
   }
 }

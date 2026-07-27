@@ -22,5 +22,10 @@
     "@types/pg": "^8.11.10",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
+  },
+  "overrides": {
+    "linkedom": {
+      "css-select": "5.2.2"
+    }
   }
 }
