@@ -7,6 +7,8 @@ export interface Tenant {
   domains: string[];
   llmProvider: "ollama" | "claude";
   monthlyQueryCap: number;
+  chatHistoryLimit: number;
+  chatHistoryExpiryHours: number;
 }
 
 /**
@@ -15,7 +17,8 @@ export interface Tenant {
  */
 export async function resolveTenantByKey(tenantKey: string): Promise<Tenant | null> {
   const { rows } = await pool.query(
-    `SELECT id, name, tenant_key, domains, llm_provider, monthly_query_cap
+    `SELECT id, name, tenant_key, domains, llm_provider, monthly_query_cap,
+            chat_history_limit, chat_history_expiry_hours
      FROM tenants WHERE tenant_key = $1`,
     [tenantKey]
   );
@@ -28,6 +31,8 @@ export async function resolveTenantByKey(tenantKey: string): Promise<Tenant | nu
     domains: row.domains,
     llmProvider: row.llm_provider,
     monthlyQueryCap: row.monthly_query_cap,
+    chatHistoryLimit: row.chat_history_limit,
+    chatHistoryExpiryHours: row.chat_history_expiry_hours,
   };
 }
 

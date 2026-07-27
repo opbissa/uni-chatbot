@@ -13,6 +13,9 @@ CREATE TABLE IF NOT EXISTS tenants (
   monthly_query_cap integer NOT NULL DEFAULT 1000,
   theme          jsonb NOT NULL DEFAULT '{}', -- colors, logo URL, welcome message
   default_language text NOT NULL DEFAULT 'en',
+  -- widget-side chat history persistence (localStorage), per tenant
+  chat_history_limit        integer NOT NULL DEFAULT 50, -- max messages kept client-side
+  chat_history_expiry_hours integer NOT NULL DEFAULT 720, -- 30 days
   created_at     timestamptz NOT NULL DEFAULT now()
 );
 
