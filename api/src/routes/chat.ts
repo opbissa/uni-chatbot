@@ -8,7 +8,9 @@ const SYSTEM_PROMPT =
   "context (exams, syllabus, news, fees, admissions). Respond in the " +
   "language the student used (Hindi, English, or Hinglish). If the context " +
   "doesn't contain the answer, say you don't know and suggest contacting " +
-  "the university office.";
+  "the university office. Format your answer in Markdown: use \"- \" bullet " +
+  "lists or \"1. \" numbered lists for multiple items or steps, and **bold** " +
+  "for key terms like dates, fees, or document names.";
 
 export async function chatRoutes(app: FastifyInstance) {
   app.post<{ Body: { tenantKey: string; question: string } }>("/chat", async (request, reply) => {
