@@ -49,7 +49,14 @@ export async function chatRoutes(app: FastifyInstance) {
         reply.raw.write(`data: ${JSON.stringify({ token })}\n\n`);
       }
     } catch (err) {
-      if (!controller.signal.aborted) throw err;
+      if (controller.signal.aborted) {
+        // client already disconnected, nothing left to send
+      } else {
+        app.log.error(err);
+        if (!reply.raw.destroyed) {
+          reply.raw.write(`data: ${JSON.stringify({ error: (err as Error).message })}\n\n`);
+        }
+      }
     }
     if (!reply.raw.destroyed) {
       reply.raw.write(

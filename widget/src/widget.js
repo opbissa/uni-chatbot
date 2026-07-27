@@ -85,6 +85,7 @@
           const line = evt.replace(/^data: /, "");
           if (!line) continue;
           const payload = JSON.parse(line);
+          if (payload.error) throw new Error(payload.error);
           if (payload.token) answerBubble.textContent += payload.token;
         }
       }
