@@ -2,7 +2,10 @@ import { CheerioCrawler } from "crawlee";
 import { chunkText } from "../ingest/chunk.js";
 import { embed } from "../ingest/embed.js";
 import { upsertChunks } from "../ingest/upsert.js";
-import { extractPdfText } from "../ingest/pdf.js";
+import { processPdfUrl } from "../ingest/processPdf.js";
+import { insertPendingPdf } from "../ingest/pdfDocuments.js";
+
+const DEFAULT_PDF_SIZE_THRESHOLD_BYTES = Number(process.env.PDF_SIZE_THRESHOLD_BYTES) || 2 * 1024 * 1024;
 
 export interface CrawlConfig {
   tenantId: string;
@@ -11,12 +14,25 @@ export interface CrawlConfig {
   selectors: Record<string, string>;
   maxRequestsPerCrawl?: number;
   maxPdfsPerCrawl?: number;
+  pdfSizeThresholdBytes?: number;
+}
+
+/** HEAD request for Content-Length; null (unknown size) means "needs review", not "assume small". */
+async function getPdfSizeBytes(url: string): Promise<number | null> {
+  try {
+    const res = await fetch(url, { method: "HEAD" });
+    const len = res.headers.get("content-length");
+    return len ? Number(len) : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Onboarding a university = insert a crawl_configs row, not writing a new spider. */
 export async function crawlTenant(config: CrawlConfig): Promise<void> {
   const contentSelector = config.selectors.content ?? "main, article, body";
   const maxPdfs = config.maxPdfsPerCrawl ?? 20;
+  const pdfSizeThreshold = config.pdfSizeThresholdBytes ?? DEFAULT_PDF_SIZE_THRESHOLD_BYTES;
   const baseOrigin = new URL(config.baseUrl).origin;
   const seenPdfUrls = new Set<string>();
 
@@ -64,20 +80,19 @@ export async function crawlTenant(config: CrawlConfig): Promise<void> {
         seenPdfUrls.add(pdfUrl);
 
         try {
-          const res = await fetch(pdfUrl);
-          if (!res.ok) continue;
-          const pdfBuffer = Buffer.from(await res.arrayBuffer());
-          const pdfText = (await extractPdfText(pdfBuffer)).replace(/\s+/g, " ").trim();
-          if (!pdfText) continue;
+          const sizeBytes = await getPdfSizeBytes(pdfUrl);
+          if (sizeBytes === null || sizeBytes > pdfSizeThreshold) {
+            await insertPendingPdf({
+              tenantId: config.tenantId,
+              sourceUrl: pdfUrl,
+              linkText: linkText || null,
+              discoveredFromUrl: request.url,
+              sizeBytes,
+            });
+            continue;
+          }
 
-          const pdfChunks = chunkText(pdfText);
-          const pdfEmbeddings = await Promise.all(pdfChunks.map((c) => embed(c.text)));
-          await upsertChunks(
-            config.tenantId,
-            pdfChunks,
-            { sourceUrl: pdfUrl, pageTitle: linkText || null },
-            pdfEmbeddings
-          );
+          await processPdfUrl(config.tenantId, pdfUrl, linkText || null);
         } catch (err) {
           log.warning(`PDF ingest failed for ${pdfUrl}: ${(err as Error).message}`);
         }

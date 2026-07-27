@@ -10,11 +10,12 @@ if (!TENANT_ID) {
 async function main() {
   await crawlTenant({
     tenantId: TENANT_ID,
-    baseUrl: "https://www.mgsubikaner.ac.in/notification/examination",
+    baseUrl: "https://www.mgsubikaner.ac.in",
     allowedPaths: [],
     selectors: { content: "section.Deans" },
     maxRequestsPerCrawl: 1,
-    maxPdfsPerCrawl: 3,
+    maxPdfsPerCrawl: 5,
+    pdfSizeThresholdBytes: 1,
   });
   await pool.end();
 }

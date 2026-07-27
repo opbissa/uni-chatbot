@@ -24,9 +24,31 @@ CREATE TABLE IF NOT EXISTS crawl_configs (
   selectors      jsonb NOT NULL DEFAULT '{}', -- per-section CSS selectors
   schedule       text NOT NULL DEFAULT '0 3 * * *', -- cron, default daily 3am
   language_hint  text,
+  -- PDFs at or under this size auto-process; larger ones (or unknown size,
+  -- e.g. no Content-Length on HEAD) wait in pdf_documents for admin review.
+  pdf_size_threshold_bytes bigint NOT NULL DEFAULT 2097152, -- 2MB
   created_at     timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS crawl_configs_tenant_id_idx ON crawl_configs(tenant_id);
+
+-- PDFs discovered while crawling that are too large (or unknown size) to
+-- auto-process. Reviewed via the admin approval screen; approving one
+-- enqueues a pdf-ingest job that runs the same extract/chunk/embed path
+-- the crawler uses for small PDFs and HTML pages.
+CREATE TABLE IF NOT EXISTS pdf_documents (
+  id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id            uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  source_url           text NOT NULL,
+  link_text            text,
+  discovered_from_url  text,
+  size_bytes           bigint, -- null when Content-Length was unavailable
+  status               text NOT NULL DEFAULT 'pending', -- 'pending' | 'approved' | 'rejected' | 'processed' | 'failed'
+  discovered_at        timestamptz NOT NULL DEFAULT now(),
+  reviewed_at          timestamptz,
+  processed_at         timestamptz,
+  UNIQUE (tenant_id, source_url)
+);
+CREATE INDEX IF NOT EXISTS pdf_documents_tenant_status_idx ON pdf_documents(tenant_id, status);
 
 -- bge-m3 embedding dimension = 1024
 CREATE TABLE IF NOT EXISTS chunks (
