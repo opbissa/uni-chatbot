@@ -16,7 +16,11 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      # Host port 6380, not 6379: a native Homebrew redis-server binds 127.0.0.1:6379
+      # on this machine and silently shadows the docker container for loopback
+      # connections. Host-side tools (admin/workers run outside docker) must use
+      # 6380; container-to-container traffic still uses redis:6379 on the compose network.
+      - "6380:6379"
     volumes:
       - redis_data:/data
 

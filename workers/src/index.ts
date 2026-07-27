@@ -1,3 +1,4 @@
+import "./env.js";
 import { Worker } from "bullmq";
 import { connection, type CrawlJobData, type PdfIngestJobData } from "./queue.js";
 import { crawlTenant } from "./crawl/crawler.js";

@@ -1,3 +1,4 @@
+import "./env.js";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { chatRoutes } from "./routes/chat.js";
