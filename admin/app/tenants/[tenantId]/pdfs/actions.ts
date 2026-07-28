@@ -3,12 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { pool } from "../../../../lib/db";
 import { pdfIngestQueue } from "../../../../lib/queue";
-
-// TODO: no auth on the admin app yet (matches current MVP state) — anyone
-// who can reach this route can approve what content gets ingested for a
-// tenant. Needs a real gate before this is exposed beyond localhost/internal use.
+import { requireTenantRole } from "../../../../lib/authorize";
+import { PDF_APPROVAL_ROLES } from "../../../../lib/roles";
 
 export async function approvePdf(tenantId: string, pdfDocumentId: string) {
+  await requireTenantRole(tenantId, PDF_APPROVAL_ROLES);
+
   const { rows } = await pool.query(
     `UPDATE pdf_documents SET status = 'approved', reviewed_at = now()
      WHERE id = $1 AND tenant_id = $2 AND status = 'pending'
@@ -22,6 +22,8 @@ export async function approvePdf(tenantId: string, pdfDocumentId: string) {
 }
 
 export async function rejectPdf(tenantId: string, pdfDocumentId: string) {
+  await requireTenantRole(tenantId, PDF_APPROVAL_ROLES);
+
   await pool.query(
     `UPDATE pdf_documents SET status = 'rejected', reviewed_at = now()
      WHERE id = $1 AND tenant_id = $2 AND status = 'pending'`,

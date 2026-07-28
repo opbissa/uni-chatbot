@@ -67,6 +67,31 @@ CREATE INDEX IF NOT EXISTS chunks_tenant_id_idx ON chunks(tenant_id);
 CREATE INDEX IF NOT EXISTS chunks_embedding_idx ON chunks
   USING hnsw (embedding vector_cosine_ops);
 
+-- Admin dashboard accounts.
+CREATE TABLE IF NOT EXISTS admin_users (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email          text NOT NULL UNIQUE,
+  password_hash  text NOT NULL,
+  -- super admins bypass admin_user_tenant_roles and can act on every tenant
+  is_super_admin boolean NOT NULL DEFAULT false,
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
+
+-- Per-tenant role grants for non-super-admins. An admin can hold different
+-- roles on different tenants (e.g. tenant_admin on one, content_approver on
+-- another). `role` is free text, not an enum, so new roles (e.g. an
+-- analytics-only role) can be added without a migration.
+CREATE TABLE IF NOT EXISTS admin_user_tenant_roles (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_user_id  uuid NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+  tenant_id      uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  role           text NOT NULL, -- 'tenant_admin' | 'content_approver' | 'analytics_viewer' | ...
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (admin_user_id, tenant_id, role)
+);
+CREATE INDEX IF NOT EXISTS admin_user_tenant_roles_user_idx ON admin_user_tenant_roles(admin_user_id);
+CREATE INDEX IF NOT EXISTS admin_user_tenant_roles_tenant_idx ON admin_user_tenant_roles(tenant_id);
+
 CREATE TABLE IF NOT EXISTS query_logs (
   id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id           uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,

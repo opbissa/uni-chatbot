@@ -1,19 +1,28 @@
 import Link from "next/link";
 import { pool } from "../../lib/db";
+import { requireUser } from "../../lib/authorize";
 
 export const dynamic = "force-dynamic";
 
-async function getTenants() {
+async function getTenants(visibleTenantIds: string[] | null) {
   const { rows } = await pool.query(
     `SELECT id, name, tenant_key,
        (SELECT count(*) FROM pdf_documents WHERE tenant_id = tenants.id AND status = 'pending') AS pending_count
-     FROM tenants ORDER BY created_at`
+     FROM tenants
+     WHERE $1::uuid[] IS NULL OR id = ANY($1::uuid[])
+     ORDER BY created_at`,
+    [visibleTenantIds]
   );
   return rows as { id: string; name: string; tenant_key: string; pending_count: string }[];
 }
 
 export default async function TenantsPage() {
-  const tenants = await getTenants();
+  const user = await requireUser();
+  // super admins see every tenant; everyone else only sees tenants they hold a role on
+  const visibleTenantIds = user.isSuperAdmin
+    ? null
+    : [...new Set(user.tenantRoles.map((r) => r.tenantId))];
+  const tenants = await getTenants(visibleTenantIds);
 
   return (
     <main style={{ fontFamily: "system-ui", padding: 32 }}>

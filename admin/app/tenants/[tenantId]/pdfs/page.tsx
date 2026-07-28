@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { pool } from "../../../../lib/db";
+import { requireTenantRole, UnauthorizedError } from "../../../../lib/authorize";
+import { PDF_APPROVAL_ROLES } from "../../../../lib/roles";
 import { approvePdf, rejectPdf } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +40,20 @@ function formatSize(bytes: string | null): string {
 
 export default async function PdfDocumentsPage({ params }: { params: Promise<{ tenantId: string }> }) {
   const { tenantId } = await params;
+  // Renders as a plain 404 (rather than a 500 or a "not authorized" message)
+  // so a user without access can't tell a denied tenant from a nonexistent one.
+  let user;
+  try {
+    user = await requireTenantRole(tenantId);
+  } catch (err) {
+    if (err instanceof UnauthorizedError) notFound();
+    throw err;
+  }
+  const canApprove =
+    user.isSuperAdmin ||
+    user.tenantRoles.some(
+      (r) => r.tenantId === tenantId && (PDF_APPROVAL_ROLES as readonly string[]).includes(r.role)
+    );
   const [tenant, docs] = await Promise.all([getTenant(tenantId), getPdfDocuments(tenantId)]);
 
   if (!tenant) {
@@ -83,7 +100,7 @@ export default async function PdfDocumentsPage({ params }: { params: Promise<{ t
               <td style={{ padding: 8 }}>{formatSize(doc.size_bytes)}</td>
               <td style={{ padding: 8 }}>{doc.status}</td>
               <td style={{ padding: 8 }}>
-                {doc.status === "pending" && (
+                {doc.status === "pending" && canApprove && (
                   <form style={{ display: "flex", gap: 8 }}>
                     <button
                       formAction={async () => {
