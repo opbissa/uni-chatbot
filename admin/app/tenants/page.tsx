@@ -26,7 +26,10 @@ export default async function TenantsPage() {
 
   return (
     <main style={{ fontFamily: "system-ui", padding: 32 }}>
-      <h1>Tenants</h1>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", maxWidth: 800 }}>
+        <h1>Tenants</h1>
+        {user.isSuperAdmin && <Link href="/tenants/new">+ New tenant</Link>}
+      </div>
       <table style={{ borderCollapse: "collapse", width: "100%", maxWidth: 800 }}>
         <thead>
           <tr style={{ textAlign: "left", borderBottom: "1px solid #ddd" }}>
