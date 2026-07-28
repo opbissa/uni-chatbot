@@ -117,13 +117,21 @@
     return text
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 
-  // Minimal markdown -> HTML: bold, bullet/numbered lists, paragraphs.
+  // Minimal markdown -> HTML: bold, links, bullet/numbered lists, paragraphs.
   // Input is escaped first so LLM output can never inject raw HTML/script.
   function renderMarkdown(raw) {
-    const escaped = escapeHtml(raw).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    const escaped = escapeHtml(raw)
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      // [text](url) — url may contain one level of nested parens, e.g. a
+      // filename like "...(OnlyForStudents).pdf" from a real crawled link.
+      .replace(
+        /\[([^\]]+)\]\(((?:[^()]|\([^()]*\))*)\)/g,
+        '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+      );
     const lines = escaped.split("\n");
     const html = [];
     let listItems = null;
@@ -161,6 +169,8 @@
     el.style.textAlign = role === "user" ? "right" : "left";
     const bubble = document.createElement("span");
     bubble.style.display = "inline-block";
+    bubble.style.maxWidth = "100%";
+    bubble.style.overflowWrap = "anywhere";
     bubble.style.padding = "8px 12px";
     bubble.style.borderRadius = "12px";
     bubble.style.background = role === "user" ? "#1a56db" : "#f1f3f5";

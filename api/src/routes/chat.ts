@@ -10,7 +10,11 @@ const SYSTEM_PROMPT =
   "doesn't contain the answer, say you don't know and suggest contacting " +
   "the university office. Format your answer in Markdown: use \"- \" bullet " +
   "lists or \"1. \" numbered lists for multiple items or steps, and **bold** " +
-  "for key terms like dates, fees, or document names.";
+  "for key terms like dates, fees, or document names. Each context section " +
+  "is labeled \"[title](url)\" — if the student asks for a link, page, or " +
+  "file (a syllabus, notice, form, PDF, etc.), respond with that exact URL " +
+  "as a Markdown link. Never invent or guess a URL that isn't present in " +
+  "the context.";
 
 export async function chatRoutes(app: FastifyInstance) {
   app.post<{ Body: { tenantKey: string; question: string } }>("/chat", async (request, reply) => {
@@ -25,7 +29,7 @@ export async function chatRoutes(app: FastifyInstance) {
 
     const chunks = await retrieve(tenant.id, question);
     const context = chunks
-      .map((c) => `[${c.pageTitle ?? c.sourceUrl}]\n${c.text}`)
+      .map((c) => `[${c.pageTitle ?? c.sourceUrl}](${c.sourceUrl})\n${c.text}`)
       .join("\n\n");
 
     // @fastify/cors only injects headers on the normal reply.send() pipeline;
