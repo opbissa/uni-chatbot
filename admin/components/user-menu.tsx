@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +22,6 @@ export function UserMenu({ email, isSuperAdmin }: { email: string; isSuperAdmin:
         <DropdownMenuGroup>
           <DropdownMenuLabel>{isSuperAdmin ? "Super admin" : "Admin"}</DropdownMenuLabel>
         </DropdownMenuGroup>
-        <DropdownMenuItem render={<Link href="/account" />}>Change password</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/login" })}>
           Sign out
