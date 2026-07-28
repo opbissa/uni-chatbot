@@ -5,7 +5,7 @@ export interface Tenant {
   name: string;
   tenantKey: string;
   domains: string[];
-  llmProvider: "ollama" | "claude";
+  llmProvider: "ollama" | "claude" | "gemini";
   monthlyQueryCap: number;
   chatHistoryLimit: number;
   chatHistoryExpiryHours: number;

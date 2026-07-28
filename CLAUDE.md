@@ -41,9 +41,10 @@ B's data, enforced in the backend, never the client.
   a C++ binary) called from Node; the Python service handles table-heavy PDFs.
 - **Embeddings:** bge-m3 served by Ollama over HTTP (`/api/embed`).
   Called from Node via fetch — no Python in the embedding path.
-- **Generation LLM:** Qwen 2.5 7B via Ollama (self-hosted) OR Claude API
-  (Haiku) — chosen PER TENANT via a `llm_provider` config field, behind a
-  single abstraction in the Node code so swapping is a config change.
+- **Generation LLM:** Qwen 2.5 7B via Ollama (self-hosted), Claude API
+  (Haiku), OR Gemini API (2.5 Flash) — chosen PER TENANT via a `llm_provider`
+  config field, behind a single abstraction in the Node code so swapping is
+  a config change.
 - **Vector store + DB:** PostgreSQL + pgvector (one database for vectors,
   tenants, configs, users, usage logs — tenant filtering is plain SQL).
 - **Deployment:** Docker Compose (postgres, redis, ollama, api, extractor,

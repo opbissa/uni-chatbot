@@ -87,24 +87,40 @@ Alternatives: multilingual-e5-large, Jina, MiniLM variants, paid APIs
   is cleaner.
 - EXPENSIVE TO CHANGE: switching models = re-embed everything.
 
-## Generation: Qwen 2.5 7B (Ollama) or Claude Haiku (API), per tenant
+## Generation: Qwen 2.5 7B (Ollama), Claude Haiku, or Gemini Flash (API), per tenant
 
 Alternatives: Llama 3.1 8B, Mistral 7B, Gemma 2 9B, Indian models
 (Sarvam, Krutrim).
 - Qwen chosen for unusually strong Hindi at 7B; Llama/Mistral weaker at Hindi.
 - Indian-built models worth benchmarking on real student queries if Hindi
   quality disappoints — tooling/availability varies.
-- Behind a single abstraction, so model swap = one-line config change. The
+- Behind a single abstraction (`api/src/llm/index.ts`), so adding/swapping a
+  provider is additive: one new file + one switch case, not a refactor. The
   open-model leaderboard shifts every few months; re-check periodically.
-- Per-tenant routing is a commercial lever: small college on Haiku API
+- Per-tenant routing is a commercial lever: small college on a hosted API
   (~100 queries/day, cheap), big university wanting on-premise gets
   self-hosted Qwen at a higher price tier. Same codebase.
+- **Gemini 2.5 Flash added (2026-07-28)** as a second hosted-API option
+  alongside Haiku: cheaper per token, so it's the better default for
+  API-tier tenants purely on cost. Haiku stays available per tenant rather
+  than being replaced — a tenant already validated on Haiku's answer quality
+  shouldn't be force-migrated for a price difference that may not matter at
+  their query volume. Pick per tenant based on which matters more for that
+  contract: raw cost (Gemini) or an existing Anthropic relationship /
+  observed answer quality (Haiku).
+- **Model name churn confirmed same day:** `gemini-2.5-flash` already 404s
+  for new API keys ("no longer available to new users"). Switched to the
+  `gemini-flash-latest` alias, which Google keeps pointed at its current
+  stable Flash model — prefer aliases over pinned Gemini model names to
+  avoid re-hitting this. `demo-tenant` is live on `gemini` and verified
+  working end-to-end (2026-07-28).
 
 ### Rough cost anchor (verify current pricing before quoting clients)
-As of mid-2026, Claude Haiku API ran ~$1/$5 per million input/output tokens.
-A typical RAG query (~2,500 input + ~250 output tokens) cost roughly
-$0.004 (~₹0.30) — about 3 queries per rupee. A self-hosted GPU box
-(~₹15–25k/month) only breaks even against Haiku somewhere around
+As of mid-2026, Claude Haiku API ran ~$1/$5 per million input/output tokens;
+Gemini 2.5 Flash undercuts that on both input and output pricing. A typical
+RAG query (~2,500 input + ~250 output tokens) cost roughly $0.004 (~₹0.30)
+on Haiku — about 3 queries per rupee — and less on Gemini. A self-hosted GPU
+box (~₹15–25k/month) only breaks even against a hosted API somewhere around
 1,500–2,000 sustained queries/day. Below that, API is cheaper AND less to
 operate. Re-check current model names and prices — they move.
 

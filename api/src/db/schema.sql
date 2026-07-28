@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS tenants (
   name           text NOT NULL,
   tenant_key     text NOT NULL UNIQUE, -- given to the widget embed snippet
   domains        text[] NOT NULL DEFAULT '{}', -- for Origin validation
-  llm_provider   text NOT NULL DEFAULT 'ollama', -- 'ollama' | 'claude'
+  llm_provider   text NOT NULL DEFAULT 'ollama', -- 'ollama' | 'claude' | 'gemini'
   plan           text NOT NULL DEFAULT 'free',
   monthly_query_cap integer NOT NULL DEFAULT 1000,
   theme          jsonb NOT NULL DEFAULT '{}', -- colors, logo URL, welcome message
