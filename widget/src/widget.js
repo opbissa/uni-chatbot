@@ -24,10 +24,11 @@
           opacity:.8;cursor:pointer;font-size:12px;text-decoration:underline;padding:0;">Clear</button>
       </div>
       <div id="uc-messages" style="flex:1;overflow-y:auto;padding:12px;font-size:14px;"></div>
-      <form id="uc-form" style="display:flex;border-top:1px solid #eee;">
-        <input id="uc-input" type="text" placeholder="Type your question..."
-          style="flex:1;border:none;padding:10px;font-size:14px;outline:none;" />
-        <button type="submit" style="border:none;background:#1a56db;color:#fff;padding:0 16px;cursor:pointer;">Send</button>
+      <form id="uc-form" style="display:flex;align-items:flex-end;border-top:1px solid #eee;">
+        <textarea id="uc-input" rows="1" placeholder="Type your question..."
+          style="flex:1;border:none;padding:10px;font-size:14px;outline:none;resize:none;
+          max-height:120px;overflow-y:auto;font-family:inherit;"></textarea>
+        <button type="submit" style="border:none;background:#1a56db;color:#fff;padding:10px 16px;cursor:pointer;align-self:stretch;">Send</button>
       </form>
     </div>
   `;
@@ -39,6 +40,18 @@
   const form = root.querySelector("#uc-form");
   const input = root.querySelector("#uc-input");
   const clearBtn = root.querySelector("#uc-clear");
+
+  function autoResizeInput() {
+    input.style.height = "auto";
+    input.style.height = `${Math.min(input.scrollHeight, 120)}px`;
+  }
+  input.addEventListener("input", autoResizeInput);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      form.requestSubmit();
+    }
+  });
 
   toggleBtn.addEventListener("click", () => {
     panel.style.display = panel.style.display === "none" ? "flex" : "none";
@@ -195,6 +208,7 @@
     const question = input.value.trim();
     if (!question) return;
     input.value = "";
+    autoResizeInput();
     appendMessage("user", question);
     const answerBubble = appendMessage("bot", "…", false);
     answerBubble.textContent = "";
