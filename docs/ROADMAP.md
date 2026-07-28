@@ -42,6 +42,18 @@ Defer everything tenant-facing until university #2 is actually signed.
   rerankers + query rewriting across many patterns.
 - Preact/Svelte widget only if it grows rich UI (file uploads, cards).
 
+## Open questions (to discuss later)
+- Response caching to cut Ollama CPU load for repeated/similar questions,
+  without letting a cache hit return a stale answer for a question that
+  only looks similar. Likely needs caching at the retrieval/context layer
+  (or a similarity threshold + exact-match layer) rather than caching final
+  answers outright. Matters because Ollama generation is CPU-only and
+  serialized on the dev Mac, so cache hits are the main lever for cutting
+  load (see `api/src/llm/ollama.ts`).
+- `topK` in `retrieve()` (`api/src/rag/retrieve.ts`) is hardcoded to 5 —
+  make it configurable per tenant if some universities need more/fewer
+  chunks per answer (denser FAQ-style content vs. sparse pages).
+
 ## Sequencing note
 Build MVP items 1→5 in order, committing to git after each works. Each stage
 has a clean input/output, so a broken stage is isolated. Get one university
