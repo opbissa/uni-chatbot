@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { pool } from "../../lib/db";
 import { requireUser } from "../../lib/authorize";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -26,11 +28,16 @@ export default async function TenantsPage() {
 
   return (
     <main style={{ fontFamily: "system-ui", padding: 32 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", maxWidth: 800 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <h1>Tenants</h1>
-        {user.isSuperAdmin && <Link href="/tenants/new">+ New tenant</Link>}
+        {user.isSuperAdmin && (
+          <Button render={<Link href="/tenants/new" />}>
+            <Plus />
+            New tenant
+          </Button>
+        )}
       </div>
-      <table style={{ borderCollapse: "collapse", width: "100%", maxWidth: 800 }}>
+      <table style={{ borderCollapse: "collapse", width: "100%" }}>
         <thead>
           <tr style={{ textAlign: "left", borderBottom: "1px solid #ddd" }}>
             <th style={{ padding: 8 }}>Name</th>
@@ -46,7 +53,9 @@ export default async function TenantsPage() {
               <td style={{ padding: 8 }}>{t.tenant_key}</td>
               <td style={{ padding: 8 }}>{t.pending_count}</td>
               <td style={{ padding: 8 }}>
-                <Link href={`/tenants/${t.id}/pdfs`}>Review PDFs</Link>
+                <Button variant="outline" size="sm" render={<Link href={`/tenants/${t.id}/pdfs`} />}>
+                  Review PDFs
+                </Button>
               </td>
             </tr>
           ))}
