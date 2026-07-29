@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { pool } from "../../../../lib/db";
 import { requireTenantRole, UnauthorizedError } from "../../../../lib/authorize";
 import { PDF_APPROVAL_ROLES } from "../../../../lib/roles";
-import { approvePdf, rejectPdf } from "./actions";
+import { PdfRowActions } from "./pdf-row-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -88,12 +88,22 @@ export default async function PdfDocumentsPage({ params }: { params: Promise<{ t
           {docs.map((doc) => (
             <tr key={doc.id} style={{ borderBottom: "1px solid #eee" }}>
               <td style={{ padding: 8, maxWidth: 320 }}>
-                <a href={doc.source_url} target="_blank" rel="noreferrer">
+                <a
+                  href={doc.source_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary underline underline-offset-2 hover:text-primary/80"
+                >
                   {doc.link_text || doc.source_url}
                 </a>
               </td>
               <td style={{ padding: 8 }}>
-                <a href={doc.discovered_from_url} target="_blank" rel="noreferrer">
+                <a
+                  href={doc.discovered_from_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary underline underline-offset-2 hover:text-primary/80"
+                >
                   {new URL(doc.discovered_from_url).pathname}
                 </a>
               </td>
@@ -101,24 +111,7 @@ export default async function PdfDocumentsPage({ params }: { params: Promise<{ t
               <td style={{ padding: 8 }}>{doc.status}</td>
               <td style={{ padding: 8 }}>
                 {doc.status === "pending" && canApprove && (
-                  <form style={{ display: "flex", gap: 8 }}>
-                    <button
-                      formAction={async () => {
-                        "use server";
-                        await approvePdf(tenantId, doc.id);
-                      }}
-                    >
-                      Approve
-                    </button>
-                    <button
-                      formAction={async () => {
-                        "use server";
-                        await rejectPdf(tenantId, doc.id);
-                      }}
-                    >
-                      Reject
-                    </button>
-                  </form>
+                  <PdfRowActions tenantId={tenantId} docId={doc.id} />
                 )}
               </td>
             </tr>
