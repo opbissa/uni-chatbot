@@ -8,38 +8,82 @@
     return;
   }
 
-  const root = document.createElement("div");
-  root.id = "uni-chatbot-root";
-  root.innerHTML = `
-    <button id="uc-toggle" style="position:fixed;bottom:20px;right:20px;width:56px;height:56px;
-      border-radius:50%;background:#1a56db;color:#fff;border:none;cursor:pointer;font-size:24px;
-      box-shadow:0 4px 12px rgba(0,0,0,.2);z-index:2147483647;">💬</button>
-    <div id="uc-panel" style="display:none;position:fixed;bottom:88px;right:20px;width:340px;
-      height:460px;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.2);
-      flex-direction:column;overflow:hidden;z-index:2147483647;font-family:system-ui,sans-serif;">
-      <div style="background:#1a56db;color:#fff;padding:12px 16px;font-weight:600;
-        display:flex;justify-content:space-between;align-items:center;">
-        <span>Ask us anything</span>
-        <button id="uc-clear" title="Clear chat history" style="background:none;border:none;color:#fff;
-          opacity:.8;cursor:pointer;font-size:12px;text-decoration:underline;padding:0;">Clear</button>
+  // Theme is baked into the snippet at admin-edit time (see docs/WIDGET_THEMING.md),
+  // not fetched at runtime, so it's available before first paint — no flash of
+  // default colors.
+  const theme = (() => {
+    try {
+      return JSON.parse(scriptTag.getAttribute("data-theme") || "{}");
+    } catch {
+      return {}; // malformed snippet edit — fall back to defaults, don't break the widget
+    }
+  })();
+
+  const host = document.createElement("div");
+  host.id = "uni-chatbot-root";
+  if (theme.primaryColor) host.style.setProperty("--uc-primary", theme.primaryColor);
+  if (theme.textOnPrimary) host.style.setProperty("--uc-on-primary", theme.textOnPrimary);
+  if (theme.botBubbleColor) host.style.setProperty("--uc-bot-bubble", theme.botBubbleColor);
+  if (theme.fontFamily) host.style.setProperty("--uc-font", theme.fontFamily);
+  document.body.appendChild(host);
+
+  const shadow = host.attachShadow({ mode: "open" });
+  const side = theme.position === "bottom-left" ? "left" : "right";
+
+  shadow.innerHTML = `
+    <style>
+      :host { all: initial; }
+      * { box-sizing: border-box; font-family: var(--uc-font, system-ui, sans-serif); }
+      #uc-toggle { position:fixed;bottom:20px;${side}:20px;width:56px;height:56px;
+        border-radius:50%;background:var(--uc-primary,#1a56db);color:#fff;border:none;
+        cursor:pointer;font-size:24px;box-shadow:0 4px 12px rgba(0,0,0,.2);z-index:2147483647; }
+      #uc-panel { display:none;position:fixed;bottom:88px;${side}:20px;width:340px;height:460px;
+        background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.2);
+        flex-direction:column;overflow:hidden;z-index:2147483647; }
+      #uc-panel-header { background:var(--uc-primary,#1a56db);color:var(--uc-on-primary,#fff);
+        padding:12px 16px;font-weight:600;display:flex;justify-content:space-between;align-items:center; }
+      #uc-header-title { display:flex;align-items:center;gap:8px; }
+      #uc-header-title img { height:20px;width:20px;object-fit:contain; }
+      #uc-clear { background:none;border:none;color:var(--uc-on-primary,#fff);opacity:.8;
+        cursor:pointer;font-size:12px;text-decoration:underline;padding:0; }
+      #uc-messages { flex:1;overflow-y:auto;padding:12px;font-size:14px; }
+      #uc-form { display:flex;align-items:flex-end;border-top:1px solid #eee; }
+      #uc-input { flex:1;border:none;padding:10px;font-size:14px;outline:none;resize:none;
+        max-height:120px;overflow-y:auto;font-family:inherit; }
+      #uc-send { border:none;background:var(--uc-primary,#1a56db);color:var(--uc-on-primary,#fff);
+        padding:10px 16px;cursor:pointer;align-self:stretch; }
+      .uc-bubble-user { background:var(--uc-primary,#1a56db);color:var(--uc-on-primary,#fff); }
+      .uc-bubble-bot { background:var(--uc-bot-bubble,#f1f3f5);color:#000; }
+    </style>
+    <button id="uc-toggle">💬</button>
+    <div id="uc-panel">
+      <div id="uc-panel-header">
+        <span id="uc-header-title"><span id="uc-title"></span></span>
+        <button id="uc-clear" title="Clear chat history">Clear</button>
       </div>
-      <div id="uc-messages" style="flex:1;overflow-y:auto;padding:12px;font-size:14px;"></div>
-      <form id="uc-form" style="display:flex;align-items:flex-end;border-top:1px solid #eee;">
-        <textarea id="uc-input" rows="1" placeholder="Type your question..."
-          style="flex:1;border:none;padding:10px;font-size:14px;outline:none;resize:none;
-          max-height:120px;overflow-y:auto;font-family:inherit;"></textarea>
-        <button type="submit" style="border:none;background:#1a56db;color:#fff;padding:10px 16px;cursor:pointer;align-self:stretch;">Send</button>
+      <div id="uc-messages"></div>
+      <form id="uc-form">
+        <textarea id="uc-input" rows="1" placeholder="Type your question..."></textarea>
+        <button id="uc-send" type="submit">Send</button>
       </form>
     </div>
   `;
-  document.body.appendChild(root);
 
-  const toggleBtn = root.querySelector("#uc-toggle");
-  const panel = root.querySelector("#uc-panel");
-  const messages = root.querySelector("#uc-messages");
-  const form = root.querySelector("#uc-form");
-  const input = root.querySelector("#uc-input");
-  const clearBtn = root.querySelector("#uc-clear");
+  const titleEl = shadow.querySelector("#uc-title");
+  titleEl.textContent = theme.title || "Ask us anything";
+  if (theme.logoUrl) {
+    const logo = document.createElement("img");
+    logo.src = theme.logoUrl;
+    logo.alt = "";
+    shadow.querySelector("#uc-header-title").prepend(logo);
+  }
+
+  const toggleBtn = shadow.querySelector("#uc-toggle");
+  const panel = shadow.querySelector("#uc-panel");
+  const messages = shadow.querySelector("#uc-messages");
+  const form = shadow.querySelector("#uc-form");
+  const input = shadow.querySelector("#uc-input");
+  const clearBtn = shadow.querySelector("#uc-clear");
 
   function autoResizeInput() {
     input.style.height = "auto";
@@ -181,13 +225,12 @@
     el.style.margin = "8px 0";
     el.style.textAlign = role === "user" ? "right" : "left";
     const bubble = document.createElement("span");
+    bubble.className = role === "user" ? "uc-bubble-user" : "uc-bubble-bot";
     bubble.style.display = "inline-block";
     bubble.style.maxWidth = "100%";
     bubble.style.overflowWrap = "anywhere";
     bubble.style.padding = "8px 12px";
     bubble.style.borderRadius = "12px";
-    bubble.style.background = role === "user" ? "#1a56db" : "#f1f3f5";
-    bubble.style.color = role === "user" ? "#fff" : "#000";
     if (role === "bot") {
       bubble.innerHTML = renderMarkdown(text);
     } else {

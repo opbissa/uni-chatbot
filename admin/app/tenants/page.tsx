@@ -43,7 +43,7 @@ export default async function TenantsPage() {
             <th style={{ padding: 8 }}>Name</th>
             <th style={{ padding: 8 }}>Tenant key</th>
             <th style={{ padding: 8 }}>Pending PDFs</th>
-            <th style={{ padding: 8 }} />
+            <th style={{ padding: 8 }}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -52,10 +52,20 @@ export default async function TenantsPage() {
               <td style={{ padding: 8 }}>{t.name}</td>
               <td style={{ padding: 8 }}>{t.tenant_key}</td>
               <td style={{ padding: 8 }}>{t.pending_count}</td>
-              <td style={{ padding: 8 }}>
+              <td style={{ padding: 8, display: "flex", gap: 8 }}>
                 <Button variant="outline" size="sm" render={<Link href={`/tenants/${t.id}/pdfs`} />}>
                   Review PDFs
                 </Button>
+                {user.isSuperAdmin && (
+                  <>
+                    <Button variant="outline" size="sm" render={<Link href={`/tenants/${t.id}/edit`} />}>
+                      Edit
+                    </Button>
+                    <Button variant="outline" size="sm" render={<Link href={`/tenants/${t.id}/widget`} />}>
+                      Customize widget
+                    </Button>
+                  </>
+                )}
               </td>
             </tr>
           ))}
